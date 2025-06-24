@@ -5,7 +5,7 @@ let package = Package(
     name: "XCResultExplorer",
     platforms: [.macOS(.v13)],
     products: [
-        .executable(name: "xcresult-explorer", targets: ["XCResultExplorer"])
+        .executable(name: "xcresultexplorer", targets: ["XCResultExplorer"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.2.0")

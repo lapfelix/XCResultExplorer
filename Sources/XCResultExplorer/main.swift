@@ -3,7 +3,7 @@ import Foundation
 
 struct XCResultExplorer: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "xcresult-explorer",
+        commandName: "xcresultexplorer",
         abstract: "Interactive explorer for XCResult files - list tests and view detailed information."
     )
     
@@ -14,13 +14,13 @@ struct XCResultExplorer: ParsableCommand {
     var testId: String?
     
     @Flag(name: .shortAndLong, help: "Show extreme details including console output")
-    var verbose: Bool = false
+    var console: Bool = false
     
     func run() throws {
         let explorer = XCResultAnalyzer(xcresultPath: xcresultPath)
         
         if let testId = testId {
-            try explorer.showTestDetails(testId: testId, verbose: verbose)
+            try explorer.showTestDetails(testId: testId, verbose: console)
         } else {
             try explorer.listTests()
         }
@@ -233,11 +233,11 @@ class XCResultAnalyzer {
     private func printUsageInstructions() {
         print()
         print("💡 Usage:")
-        print("  View test details: xcresult-explorer <path> --test-id <ID or index>")
-        print("  View with logs:    xcresult-explorer <path> --test-id <ID or index> --verbose")
+        print("  View test details: xcresultexplorer <path> --test-id <ID or index>")
+        print("  View with logs:    xcresultexplorer <path> --test-id <ID or index> --console")
         print("  Examples:")
-        print("    xcresult-explorer result.xcresult --test-id 5")
-        print("    xcresult-explorer result.xcresult --test-id \"TestSuite/testMethod()\"")
+        print("    xcresultexplorer result.xcresult --test-id 5")
+        print("    xcresultexplorer result.xcresult --test-id \"TestSuite/testMethod()\"")
         print()
     }
     

@@ -4,7 +4,7 @@ Interactive command line tool to explore XCResult files - list all tests and vie
 ## Features
 - 📋 List all tests with their status and IDs
 - 🔍 View detailed information about specific tests
-- 🔬 Access extreme details including console output (with --verbose)
+- 🔬 Access extreme details including console output (with --console)
 - 💡 Smart failure analysis with suggested fixes
 - 🎯 Much easier to use than xcresulttool
 
@@ -12,21 +12,21 @@ Interactive command line tool to explore XCResult files - list all tests and vie
 
 ### List all tests
 ```bash
-xcresult-explorer path/to/result.xcresult
+xcresultexplorer path/to/result.xcresult
 ```
 
 ### View details for a specific test
 ```bash
-xcresult-explorer path/to/result.xcresult --test-id "TestIdentifier"
+xcresultexplorer path/to/result.xcresult --test-id "TestIdentifier"
 ```
 
 ### View extreme details with console output
 ```bash
-xcresult-explorer path/to/result.xcresult --test-id "TestIdentifier" --verbose
+xcresultexplorer path/to/result.xcresult --test-id "TestIdentifier" --console
 ```
 
 ## Installation
 ```bash
 swift build -c release
-cp .build/release/xcresult-explorer /usr/local/bin/
+cp .build/release/xcresultexplorer /usr/local/bin/
 ```
