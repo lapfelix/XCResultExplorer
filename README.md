@@ -2,12 +2,11 @@
 Interactive command line tool to explore XCResult files - list all tests and view detailed information including console output.
 
 ## Features
-- 🔍 Find all XCResult files in a project with timestamps and file sizes
-- 📋 List all tests with their status and IDs
-- 🔍 View detailed information about specific tests
-- 🔬 Access extreme details including console output (with --console)
-- 💡 Smart failure analysis with suggested fixes
-- 🎯 Much easier to use than xcresulttool
+- Find all XCResult files for a project with timestamps and file sizes
+- List all tests with their status and IDs
+- View detailed information about specific tests
+- View console output for a test with `--console`
+- Much easier to use than xcresulttool
 
 ## Usage
 
