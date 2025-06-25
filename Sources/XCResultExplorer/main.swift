@@ -7,8 +7,8 @@ struct XCResultExplorer: ParsableCommand {
         abstract: "Interactive explorer for XCResult files - list tests and view detailed information."
     )
     
-    @Argument(help: "Path to the .xcresult file")
-    var xcresultPath: String
+    @Argument(help: "Path to the .xcresult file or project directory")
+    var path: String
     
     @Option(name: .shortAndLong, help: "Show details for a specific test ID or index number")
     var testId: String?
@@ -16,13 +16,21 @@ struct XCResultExplorer: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Show extreme details including console output")
     var console: Bool = false
     
+    @Flag(name: .shortAndLong, help: "Find and list all XCResult files in the project directory")
+    var project: Bool = false
+    
     func run() throws {
-        let explorer = XCResultAnalyzer(xcresultPath: xcresultPath)
-        
-        if let testId = testId {
-            try explorer.showTestDetails(testId: testId, verbose: console)
+        if project {
+            let finder = XCResultFinder(projectPath: path)
+            try finder.findAndListXCResults()
         } else {
-            try explorer.listTests()
+            let explorer = XCResultAnalyzer(xcresultPath: path)
+            
+            if let testId = testId {
+                try explorer.showTestDetails(testId: testId, verbose: console)
+            } else {
+                try explorer.listTests()
+            }
         }
     }
 }
@@ -233,9 +241,11 @@ class XCResultAnalyzer {
     private func printUsageInstructions() {
         print()
         print("💡 Usage:")
+        print("  Find XCResults:    xcresultexplorer <project_path> --project")
         print("  View test details: xcresultexplorer <path> --test-id <ID or index>")
         print("  View with logs:    xcresultexplorer <path> --test-id <ID or index> --console")
         print("  Examples:")
+        print("    xcresultexplorer . --project")
         print("    xcresultexplorer result.xcresult --test-id 5")
         print("    xcresultexplorer result.xcresult --test-id \"TestSuite/testMethod()\"")
         print()
@@ -1117,6 +1127,124 @@ class XCResultAnalyzer {
             return "\(remainingSeconds)s"
         }
     }
+}
+
+class XCResultFinder {
+    private let projectPath: String
+    
+    init(projectPath: String) {
+        self.projectPath = projectPath
+    }
+    
+    func findAndListXCResults() throws {
+        print("🔍 Finding XCResult files in: \(projectPath)")
+        print("=" * 80)
+        
+        let xcresultFiles = try findXCResultFiles()
+        
+        if xcresultFiles.isEmpty {
+            print("❌ No XCResult files found in the specified directory")
+            return
+        }
+        
+        print("📋 Found \(xcresultFiles.count) XCResult file\(xcresultFiles.count == 1 ? "" : "s"):")
+        print("-" * 80)
+        
+        for (index, file) in xcresultFiles.enumerated() {
+            printXCResultInfo(file, index: index + 1)
+        }
+        
+        print()
+        print("💡 Usage:")
+        print("  Explore a specific file: xcresultexplorer <path_from_above>")
+        print("  View test details: xcresultexplorer <path_from_above> --test-id <ID>")
+    }
+    
+    private func findXCResultFiles() throws -> [XCResultFileInfo] {
+        let fileManager = FileManager.default
+        let projectURL = URL(fileURLWithPath: projectPath)
+        
+        var xcresultFiles: [XCResultFileInfo] = []
+        
+        if let enumerator = fileManager.enumerator(at: projectURL, includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey, .fileSizeKey], options: [.skipsHiddenFiles]) {
+            
+            for case let fileURL as URL in enumerator {
+                if fileURL.pathExtension == "xcresult" {
+                    let resourceValues = try fileURL.resourceValues(forKeys: [.isDirectoryKey, .contentModificationDateKey, .fileSizeKey])
+                    
+                    if resourceValues.isDirectory == true {
+                        let modificationDate = resourceValues.contentModificationDate ?? Date()
+                        let fileSize = resourceValues.fileSize ?? 0
+                        
+                        let fileInfo = XCResultFileInfo(
+                            path: fileURL.path,
+                            modificationDate: modificationDate,
+                            fileSize: fileSize
+                        )
+                        xcresultFiles.append(fileInfo)
+                    }
+                }
+            }
+        }
+        
+        // Sort by modification date (newest first)
+        xcresultFiles.sort { $0.modificationDate > $1.modificationDate }
+        
+        return xcresultFiles
+    }
+    
+    private func printXCResultInfo(_ fileInfo: XCResultFileInfo, index: Int) {
+        let fileName = URL(fileURLWithPath: fileInfo.path).lastPathComponent
+        let timeAgo = formatTimeAgo(fileInfo.modificationDate)
+        let fileSize = formatFileSize(fileInfo.fileSize)
+        let timestamp = formatTimestamp(fileInfo.modificationDate)
+        
+        print("[\(index)] 📦 \(fileName)")
+        print("    Path: \(fileInfo.path)")
+        print("    Modified: \(timestamp) (\(timeAgo))")
+        print("    Size: \(fileSize)")
+        print()
+    }
+    
+    private func formatTimeAgo(_ date: Date) -> String {
+        let now = Date()
+        let timeInterval = now.timeIntervalSince(date)
+        
+        if timeInterval < 60 {
+            return "just now"
+        } else if timeInterval < 3600 {
+            let minutes = Int(timeInterval / 60)
+            return "\(minutes) minute\(minutes == 1 ? "" : "s") ago"
+        } else if timeInterval < 86400 {
+            let hours = Int(timeInterval / 3600)
+            return "\(hours) hour\(hours == 1 ? "" : "s") ago"
+        } else if timeInterval < 604800 {
+            let days = Int(timeInterval / 86400)
+            return "\(days) day\(days == 1 ? "" : "s") ago"
+        } else {
+            let weeks = Int(timeInterval / 604800)
+            return "\(weeks) week\(weeks == 1 ? "" : "s") ago"
+        }
+    }
+    
+    private func formatFileSize(_ bytes: Int) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(bytes))
+    }
+    
+    private func formatTimestamp(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
+
+struct XCResultFileInfo {
+    let path: String
+    let modificationDate: Date
+    let fileSize: Int
 }
 
 extension String {
